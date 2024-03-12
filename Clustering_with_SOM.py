@@ -292,11 +292,12 @@ def SOM_1D(scaled_curves,som_x = None,som_y = None,learning_rate = 0.1,sigma = 1
     if stat == 'both':
         stat = 'qt'
     if train_mode == 'random':
+        np.random.seed(random_seed)
+        random_seed_array = np.random.randint(len(scaled_curves),size = max_iter)
         if early_stopping_no is None:
             early_stopping_no = max_iter
         for i in tqdm(range(max_iter),desc = 'Evaluating SOM'):
-            np.random.seed(random_seed)
-            rand_i = np.random.randint(len(scaled_curves))
+            rand_i = random_seed_array[i]
             som_model.update(scaled_curves[rand_i], som_model.winner(scaled_curves[rand_i]), i, max_iter)
             if (i % plot_frequency == 0 or i == len(scaled_curves)-1) and plot_training:
                 indices_to_plot.append(i)
@@ -1717,7 +1718,7 @@ def SFplus(magnitudes):
     return sfplus
 
 def SFminus(magnitudes):
-  '''
+    '''
     Calculates the S- function of given light curves. S- is the variance of magnitudes where the brightness decreases
     
     Parameters
