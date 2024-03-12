@@ -295,6 +295,7 @@ def SOM_1D(scaled_curves,som_x = None,som_y = None,learning_rate = 0.1,sigma = 1
         if early_stopping_no is None:
             early_stopping_no = max_iter
         for i in tqdm(range(max_iter),desc = 'Evaluating SOM'):
+            np.random.seed(random_seed)
             rand_i = np.random.randint(len(scaled_curves))
             som_model.update(scaled_curves[rand_i], som_model.winner(scaled_curves[rand_i]), i, max_iter)
             if (i % plot_frequency == 0 or i == len(scaled_curves)-1) and plot_training:
