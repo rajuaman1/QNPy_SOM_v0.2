@@ -15,6 +15,11 @@ import plotly.graph_objects as go
 from glob import glob
 from copy import deepcopy
 import shutil
+from matplotlib.colors import Normalize
+from astropy.cosmology import FlatLambdaCDM
+from itertools import combinations
+from scipy import stats
+import seaborn as sns
 
 #Function to plot light curve adapted from Damir's notebook
 def Plot_Lc(Light_Curve,header = 'Light Curve',save_fig = False,filename = 'Figure',x_axis = 'mjd',return_fig = False):
@@ -583,6 +588,25 @@ def SOM_Clusters_Histogram(cluster_map,color,save_figs = True,figs_save_path = '
         plt.savefig(figs_save_path+'Plots/Clusters_Histogram.png')
         
 def findMin(x, y, umat):
+    '''
+    Finds the minimum node in the unified matrix when given the x and y coordinate
+    
+    Parameters
+    ----------
+    x: int  
+    The x position of the given input node
+    
+    y: int  
+    The y position of the given input node
+    
+    umat: np.ndarry
+    The unified distance matrix of the nodes of the SOM
+    
+    Returns
+    --------
+    minx, miny:
+    The minumum x node and minimum y node
+    '''
     #Finds minimum node
     newxmin=max(0,x-1)
     newxmax=min(umat.shape[0],x+2)
@@ -592,7 +616,25 @@ def findMin(x, y, umat):
     return newxmin+minx[0], newymin+miny[0]
 
 def findInternalNode(x, y, umat):
-    #Finds node with internal minimum
+    '''
+    Finds the minimum node in the unified matrix when given the x and y coordinate, taking into account if the current node is min
+    
+    Parameters
+    ----------
+    x: int  
+    The x position of the given input node
+    
+    y: int  
+    The y position of the given input node
+    
+    umat: np.ndarry
+    The unified distance matrix of the nodes of the SOM
+    
+    Returns
+    --------
+    minx, miny:
+    The minumum x node and minimum y node
+    '''
     minx, miny = findMin(x,y,umat)
     if (minx == x and miny == y):
         cx = minx
@@ -602,7 +644,22 @@ def findInternalNode(x, y, umat):
     return cx, cy
         
 def Get_Gradient_Cluster(som):
-    #Get the SOM Gradient Clusters
+    '''
+    Finds the center of the gradient for each node of the SOM
+    
+    Parameters
+    ----------
+    som: int  
+    The trained SOM
+    
+    Returns
+    --------
+    cluster_centers:
+    The center nodes that become the new gradient clusters
+    
+    cluster_pos:
+    The original SOM cluster centers
+    '''
     cluster_centers = []
     cluster_pos  = []
     for row in np.arange(som.distance_map().shape[0]):
@@ -612,10 +669,25 @@ def Get_Gradient_Cluster(som):
             cluster_pos.append(np.array([row,col]))
     return np.array(cluster_centers),np.array(cluster_pos)
 
-def SOM_Nodes_to_Gradient_Centers(som,size_of_data):
-    #Create a mapping from the som nodes to the gradient clusters
-    gradient_centers = [int(cluster_center[0]*np.ceil(np.sqrt(np.sqrt(size_of_data)))+cluster_center[1]) for cluster_center in Get_Gradient_Cluster(som)[0]]
-    actual_clusters = [int(cluster_center[0]*np.ceil(np.sqrt(np.sqrt(size_of_data)))+cluster_center[1]) for cluster_center in Get_Gradient_Cluster(som)[1]]
+def SOM_Nodes_to_Gradient_Centers(som,som_y):
+    '''
+    Retuns the cluster mapping for the Gradient clusters
+    
+    Parameters
+    ----------
+    som: int  
+    The x position of the given input node
+    
+    som_y: int  
+    The y dimensions of the SOM
+    
+    Returns
+    --------
+    minx, miny:
+    The minumum x node and minimum y node
+    '''
+    gradient_centers = [cluster_center[0]*som_y+cluster_center[1]+1 for cluster_center in Get_Gradient_Cluster(som)[0]]
+    actual_clusters = [cluster_center[0]*som_y+cluster_center[1]+1 for cluster_center in Get_Gradient_Cluster(som)[1]]
     clustering_map = pd.DataFrame({'Original Clusters':actual_clusters,'New Clusters':gradient_centers})
     return clustering_map
 
@@ -680,6 +752,22 @@ def Gradient_Cluster_Map(som,scaled_curves,ids,dimension = '1D',fill = 'mean',in
     return pd.DataFrame({'ID':ids,'Cluster':cluster_numbers_map})
 
 def matplotlib_cmap_to_plotly(cmap, entries):
+    '''
+    Creates a colorscale used to create an interactive plot
+    
+    Parameters
+    ----------
+    cmap:  
+    The colormap
+    
+    entries: 
+    The colormap entries
+
+    Returns
+    --------
+    colorscale:
+    The colorscale for the interactive plot
+    '''
     #Used for creating interactive plot
     h = 1.0/(entries-1)
     colorscale = []
@@ -691,7 +779,18 @@ def matplotlib_cmap_to_plotly(cmap, entries):
     return colorscale
 
 def plotStarburstMap(som):
-    #Plots the Starburst Gradient Visualization of the clusters
+    '''
+    Interactive plot of the distance map and gradients of the SOM
+    
+    Parameters
+    ----------
+    som:  
+    The trained SOM
+
+    Returns
+    --------
+    Plot of the distance map and gradients
+    '''
     boner_rgb = []
     norm = matplotlib.colors.Normalize(vmin=0, vmax=255)
     bone_r_cmap = matplotlib.colormaps.get_cmap('bone_r')
@@ -846,13 +945,49 @@ def save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save
 ### 2D Clustering Functions
 
 def scale_to_range(series, min_val=-2, max_val=2):
-    #Used to scale a series
+    '''
+    Scales a series to a range
+    
+    Parameters
+    ----------
+    series: pd.Series 
+    The series to scale
+    
+    min_val: int
+    The minimum value to scale to
+    
+    max_val: int
+    The maximum value to scale to
+
+    Returns
+    --------
+    scaled_series:
+    The scaled series between the max and min values
+    '''
     min_series = series.min()
     max_series = series.max()
     return min_val + (max_val - min_val) * (series - min_series) / (max_series - min_series)
 
 def masked_euclidean_distance(data1, data2, mask):
-    "Calculate Euclidean distance, ignoring masked elements."
+    '''
+    Calculates the masked euclidean distance between two arrays using a common mask
+    
+    Parameters
+    ----------
+    data1: np.ndarray
+    The first array
+    
+    data2: np.ndarray
+    The second array
+    
+    mask: np.ma.mask
+    The mask used to get the distance
+
+    Returns
+    --------
+    masked_distance:
+    The masked distance measure
+    '''
     return np.sqrt(np.ma.sum((np.ma.array(data1, mask=mask) - np.ma.array(data2, mask=mask)) ** 2))
 
 def multi_band_processing(light_curves,ids,filter_names = 'ugriz',return_wide = False):
@@ -1093,3 +1228,623 @@ def Get_Gradient_Cluster_2D(som,fill = 'mean',interpolation_kind = 'cubic'):
             cluster_centers.append(np.array([cx,cy]))
             cluster_pos.append(np.array([row,col]))
     return np.array(cluster_centers),np.array(cluster_pos)
+
+
+##Visualization Functions
+def create_dir_save_plot(path,plot_name):
+    '''
+    If there is no folder named plots in the path, it creates one and saves an figure
+    
+    Parameters
+    ----------
+    path: str  
+    The path to create the Plots folder in
+    
+    plot_name: 
+    The name to save the plot under
+    ''' 
+    if 'Plots' not in os.listdir(path):
+            os.makedirs(path+'Plots')
+    plt.savefig(path+'Plots/'+plot_name+'.png')
+
+def tolerant_mean(arrs):
+    '''
+    Calculates the mean of arrays without them having to be the same length
+    
+    Parameters
+    ----------
+    arrs:  
+    The arrays to calculate the mean for 
+
+    Returns
+    --------
+    mean:
+    The tolerant mean of the arrays
+    
+    std:
+    The tolerant std of the arrays
+    '''
+    lens = [len(i) for i in arrs]
+    arr = np.ma.empty((np.max(lens),len(arrs)))
+    arr.mask = True
+    for idx, l in enumerate(arrs):
+        arr[:len(l),idx] = l
+    return arr.mean(axis = -1), arr.std(axis=-1)
+
+def get_best_grid(number_of_objects):
+    '''
+    Creates a grid that is optimal for the number of objects
+    
+    Parameters
+    ----------
+    number_of_objects: int  
+    The number of objects to make the grid for
+
+    Returns
+    --------
+    rows:
+    The number of rows for the grid
+    
+    cols:
+    The number of cols for the grid
+    '''
+    cols = int(np.sqrt(number_of_objects))
+    rows = number_of_objects//cols
+    if number_of_objects % cols != 0:
+        rows += 1
+    return rows,cols
+
+def Averaging_Clusters(chosen_cluster,cluster_map,lcs,plot = True,dba = True):
+    '''
+    Creating a representation of the chosen cluster with the light curves and the average light curve
+    
+    Parameters
+    ----------
+    chosen_cluster: int 
+    The cluster of interest
+    
+    cluster_map: pd.Dataframe
+    A map of each of the ids to the clusters
+    
+    lcs: list of list of pd.Dataframes
+    The light curves (provide the input from just one filter)
+    
+    plot: bool
+    Whether to plot or just return the average value 
+    
+    dba: bool
+    Whether to use Dynamic Barymetric Time Averaging or to use a simple mean of the light curves
+    
+    Returns
+    --------
+    average_x:
+    The x_axis (i.e timesteps) of the average light curve
+    
+    average_y:
+    The y_axis (i.e magnitudes) of the average light curve
+    
+    x:
+    The timesteps of all the light curves concatenated into one array
+    
+    y: 
+    The magnitudes of all the light curves concatenated into one array
+    
+    len(x):
+    The length of all the light curves
+    '''
+  #Either plots each light curve with its errors and the average or just returns the average
+    x = []
+    x_arrs = []
+    y = []
+    y_arrs = []
+    err = []
+    ids = []
+    all_curves = []
+    #Getting the data to plot for the cluster
+    for quasar_id,cluster,i in zip(cluster_map.ID,cluster_map.Cluster,range(len(cluster_map))):
+        if cluster == chosen_cluster:
+            light_curve = lcs[i]
+            light_curve = light_curve.dropna(subset = ['mag'])
+            light_curve = light_curve.sort_values(by = 'mjd')
+            all_curves.append(light_curve)
+            times = light_curve.mjd - light_curve.mjd.min()
+            x.append(times)
+            x_arrs.append(times.to_numpy()) 
+            y.append(light_curve.mag)
+            y_arrs.append(light_curve.mag.to_numpy())
+            err.append(light_curve.magerr)
+    cmap = plt.cm.prism
+    norm = Normalize(vmin=1, vmax=len(x))
+    if dba: #Need to build support for mean (even though the light curves are not same length)
+        average_x = dtw_barycenter_averaging(x)
+        average_y = dtw_barycenter_averaging(y)
+    else:
+        average_x = tolerant_mean(x_arrs)[0]
+        average_y = tolerant_mean(y_arrs)[0]
+    #Plotting a scatter plot and line plot
+    if plot is True:
+        fig,(ax1,ax2) = plt.subplots(1,2,sharey= True,figsize = (6,7))
+        for i in range(len(x)):
+            ax1.errorbar(x[i], y[i]*(i+1), err[i], fmt='.',color = cmap(int(i)),alpha = 0.1)
+            ax2.plot(x[i],y[i]*(i+1),alpha = 0.5,c = cmap(int(i)))
+        ax1.invert_yaxis()
+        ax1.set_ylabel('Magnitude')
+        ax2.set_ylabel('Magnitude')
+        ax1.set_xlabel('Days')
+        ax2.set_xlabel('Days')
+        print('Length of Cluster: '+str(len(x)))
+        plt.figure()
+        for i in range(len(x)):
+            plt.plot(x[i],y[i],alpha = 0.5,c = 'grey')
+        plt.plot(average_x,average_y,label = 'Averaged Curves')
+        plt.ylabel('Magnitude')
+        plt.xlabel('Days')
+        plt.gca().invert_yaxis()
+    else:
+        return average_x,average_y,x,y,len(x)
+
+def Plot_All_Clusters(cluster_map,lcs,color = 'tab:blue',dba = True,figsize = (10,10),save_figs = True,figs_save_path = './'):
+    '''
+    Plots all of the clusters on a magnitude plot with the average representation included
+    
+    Parameters
+    ----------
+    cluster_map: pd.Dataframe
+    A map of each of the ids to the clusters
+    
+    lcs: list of list of pd.Dataframes
+    The light curves (provide the input from just one filter)
+    
+    color: str
+    The color to plot the averaged curve in
+    
+    dba: bool
+    Whether to use Dynamic Barymetric Time Averaging or to use a simple mean of the light curves
+    
+    figsize: tuple
+    The figure size
+    
+    save_figs: bool
+    Whether to save the figure or not
+    
+    figs_save_path: str
+    Where to save the figure. Note that it is saved under a directory called Plots in that directory.
+    '''
+    #Getting the shape of the subplots
+    clusters = cluster_map.value_counts('Cluster').index.to_numpy()
+    total = len(clusters)
+    cols = int(np.sqrt(len(clusters)))
+    rows = total//cols
+    if total % cols != 0:
+        rows += 1
+    fig, axs = plt.subplots(rows,cols,figsize=figsize,layout="constrained",sharey = True)
+    #fig.suptitle('Clusters')
+    #Getting the values to plot
+    x_axis = []
+    y_axis = []
+    for i in tqdm(range(len(clusters)),desc = 'Plotting Averaged Clusters'):
+        x,y,back_x,back_y,no = Averaging_Clusters(clusters[i],cluster_map,lcs,plot = False,dba = dba)
+        for j in range(no):
+            axs.flat[i].plot(back_x[j],back_y[j],color = 'gray',alpha = 0.5)
+            axs.flat[i].plot(x,y,color = color)
+            axs.flat[i].set_title(f'Cluster {clusters[i]}, {no} curves')
+            axs.flat[i].set_xlabel('Days')
+            axs.flat[i].set_ylabel('Magnitude')
+            axs.flat[i].invert_yaxis()
+    axs[0,0].invert_yaxis()
+    if save_figs:
+        create_dir_save_plot(figs_save_path,'SOM_Nodes_Map')
+    plt.show()
+
+def get_redshifts(redshifts_map):
+    '''
+    Gets all the redshifts from a redshifts map  
+    
+    Parameters
+    ----------
+    redshifts_map:  pd.Dataframe
+    The mapping of ids to redshifts 
+
+    Returns
+    --------
+    redshifts:
+    The list of redshifts
+    '''
+    redshifts = redshifts_map.z.to_list()
+    return redshifts
+
+def get_fvars(lcs):
+    '''
+    Calculates the variability function of the light curves
+    
+    Parameters
+    ----------
+    lcs:  List of pd.Dataframes
+    The light curves of interest
+
+    Returns
+    --------
+    fvars:
+    The list of variability functions
+    '''
+    fvars = []
+    for quasar in lcs:
+        N = len(quasar)
+        meanmag = quasar['mag'].mean()
+        s2 = (1/(N-1))*np.sum((quasar['mag']-meanmag)**2)
+        erm = np.mean(quasar['magerr']**2)
+        f_var = np.sqrt((s2-erm)/(np.mean(quasar["mag"])**2))
+        if np.isnan(f_var):
+            f_var = np.nan
+        fvars.append(f_var)
+    return fvars
+
+def get_luminosities_and_masses(lcs, redshifts_map, H0 = 67.4, Om0 = 0.315):
+    '''
+    Randomly samples the luminosity and masses of the quasar black holes assuming a given Hubble Constant, Omega_0, and redshift
+    
+    Parameters
+    ----------
+    lcs:  List of pd.Dataframes
+    The light curves of interest
+    
+    redshifts_map: pd.DataFrame
+    The map from the ids to their redshifts
+    
+    H0: float
+    The hubble constant at z=0
+    
+    Om0: float
+    Omega matter: density of non-relativistic matter in units of the critical density at z=0. 
+
+    Returns
+    --------
+    Log_lum:
+    The logarithm of the luminosities
+    
+    Log_Mass:
+    The logarithm of the masses
+    '''
+
+    #Calculating luminosities
+    c = 299792.458
+    Tcmb0 = 2.725
+    #Cosmological Model Chosen
+    cosmo = FlatLambdaCDM(H0,Om0,Tcmb0)
+    redshifts = get_redshifts(redshifts_map)
+
+    distances=[]
+    #Getting the distances from the redshifts
+    for i in range(len(redshifts)):
+        distances.append(cosmo.comoving_distance(redshifts[i]).value)
+    #Converting distance to luminosities and correcting the magnitudes
+    F0=3.75079e-09
+    lambeff=3608.4
+    Mpc_to_cm = 3.086e+24
+    luminosity=[]
+    absolmag=[]
+    for i,quasar in enumerate(lcs):
+        meanmag= quasar['mag'].mean()
+        const=4*np.pi*((distances[i]*Mpc_to_cm)**2)*lambeff*F0
+        luminosity.append(const*np.power(10, -meanmag/2.5))
+        Kcorr=-2.5*(1-0.5)*np.log(1+redshifts[i])
+        absolmag.append(meanmag-5*np.log10(distances[i])-25-Kcorr)
+    #Using the corrected magnitudes to calculate black hole masses
+    mu=2.0-0.27*np.asarray(absolmag)
+    sigma=np.abs(0.580+0.11*np.asarray(absolmag))
+    #Random Sampling the Masses from Distribution
+    Log_Mass=np.zeros(len(mu))
+    for i in range(len(mu)):
+        k1=np.random.normal(mu[i],sigma[i],10).mean()
+        Log_Mass[i] = k1
+
+    return np.log10(luminosity),Log_Mass
+
+def Cluster_Properties(cluster_map,selected_cluster,lcs,redshifts_map = None,plot = True,return_values = False,\
+                       the_property = 'all',save_figs = True,figs_save_path = './'):
+    '''
+    Getting the selected property of a chosen cluster
+    
+    Parameters
+    ----------
+    cluster_map: pd.Dataframe
+    A map of each of the ids to the clusters
+    
+    chosen_cluster: int 
+    The cluster of interest
+    
+    lcs: list of list of pd.Dataframes
+    The light curves (provide the input from just one filter)
+    
+    redshifts_map: pd.Dataframe
+    The redshift associated with each source id
+    
+    plot: bool
+    Whether to plot or just return the average value 
+    
+    return_values: bool
+    Whether to return the values for the property
+    
+    the_property: str
+    The property to plot. Choice from z (redshift), Fvar (the variability function), Lum (luminosity), Mass, or all
+    
+    save_figs: bool
+    Whether to save the figure or not
+    
+    figs_save_path: str
+    Where to save the figure. Note that it is saved under a directory called Plots in that directory.
+    
+    Returns
+    --------
+    return_list: 
+    The list of the property of interest
+    '''
+    if redshifts_map is None and the_property != 'Fvar':
+        print('Need Redshifts to plot selected property')
+        return
+    all_quasar_ids = cluster_map.ID
+    if selected_cluster == 'all':
+        selected_quasar_ids = all_quasar_ids.to_list()
+    else:
+        selected_quasar_ids = cluster_map.ID[cluster_map.Cluster == selected_cluster].to_list()
+    quasar_light_curves = []
+    for i in range(len(lcs)):
+        if all_quasar_ids[i] in selected_quasar_ids:
+              quasar_light_curves.append(lcs[i])
+    return_list = [[np.nan]*len(selected_quasar_ids)]*4
+    if the_property == 'all':
+        the_property = 'zFvarLumMass'
+    if 'z' in the_property:
+        redshifts = get_redshifts(redshifts_map[redshifts_map.ID.isin(selected_quasar_ids)])
+        return_list[0] = redshifts
+        if 'Lum' not in the_property or 'Mass' not in the_property:
+            log_luminosities = [None]*len(fvars)
+            log_masses = [None]*len(fvars)
+        if 'Fvar' not in the_property:
+            fvars = [None]*len(log_masses)
+    if 'Fvar' in the_property:
+        fvars = get_fvars(quasar_light_curves)
+        return_list[1] = fvars
+        if 'z' not in the_property:
+            redshifts = [None]*len(fvars)
+        if 'Lum' not in the_property or 'Mass' not in the_property:
+            log_luminosities = [None]*len(fvars)
+            log_masses = [None]*len(fvars)
+    if 'Lum' in the_property or 'Mass' in the_property:
+        log_luminosities,log_masses = get_luminosities_and_masses(quasar_light_curves,redshifts_map[redshifts_map.ID.isin(selected_quasar_ids)])
+        return_list[2] = log_luminosities
+        return_list[3] = log_masses
+        if 'z' not in the_property:
+            redshifts = [None]*len(log_masses)
+        if 'Fvar' not in the_property:
+            fvars = [None]*len(log_masses)
+    if plot is True:
+        new_dataframe = pd.DataFrame({'z':redshifts,r'$F_{var}$':fvars,r'$log_{10}{L[erg s^{-1}]}$':log_luminosities,r'$log_{10}{M[M_{\odot}]}$':log_masses})
+        plt.figure()
+        sns.pairplot(new_dataframe,corner = True)
+        plt.minorticks_off()
+        if save_figs:
+            create_dir_save_plot(figs_save_path,f'Cluster_{selected_cluster}_Properties')
+    if return_values is True:
+        return return_list
+
+def Cluster_Properties_Comparison(cluster_map,lcs,redshifts_map,the_property = 'Fvar',color = '#1f77b4',\
+                                  figsize = (15,15),save_figs = True,figs_save_path = './'):
+    '''
+    Plotting the property of interest for all the clusters onto one figure
+    
+    Parameters
+    ----------
+    cluster_map: pd.Dataframe
+    A map of each of the ids to the clusters
+    
+    lcs: list of list of pd.Dataframes
+    The light curves (provide the input from just one filter)
+    
+    redshifts_map: pd.Dataframe
+    The redshift associated with each source id
+    
+    the_property: str
+    The property to plot. Choice from z (redshift), Fvar (the variability function), Lum (luminosity), Mass, or all
+    
+    color: str
+    The color to make the histogram
+    
+    figsize: tuple
+    The figure size
+    
+    save_figs: bool
+    Whether to save the figure or not
+    
+    figs_save_path: str
+    Where to save the figure. Note that it is saved under a directory called Plots in that directory.
+    
+    Returns
+    --------
+    return_list: 
+    The list of the property of interest
+    '''
+    #Plots a histogram for one of the 4 different properties that we see in the clusters
+    property_to_num_dict = {'z':0,'Fvar':1,'Lum':2,'Mass':3}
+    property_to_label_dict = {'z':'z','Fvar':'$F_{var}$','Lum':r'$log_{10}{L[erg s^{-1}]}$','Mass':r'$log_{10}{M[M_{\odot}]}$'}
+    rows,cols = get_best_grid(len(cluster_map.value_counts('Cluster')))
+    fig,axs = plt.subplots(rows,cols,figsize = figsize,layout = 'constrained')
+    count = 0
+    #Setting the x scale for all the clusters
+    properties = Cluster_Properties(cluster_map,'all',lcs,redshifts_map,plot = False,return_values = True,the_property = the_property)[property_to_num_dict[the_property]]
+    min_x = min(properties)
+    max_x = max(properties)
+    bins = np.linspace(min_x,max_x,10)
+    plt.setp(axs, xlim=(min_x,max_x))
+  #Plotting the different subclusters
+    for i in tqdm(range(rows),desc = 'Plotting '+the_property+' Distribution'):
+        for j in range(cols):
+            plotting_values = np.array(Cluster_Properties(cluster_map,count+1,lcs,redshifts_map,the_property = the_property,plot = False,return_values = True)[property_to_num_dict[the_property]])
+            plotting_values = plotting_values[np.isfinite(plotting_values)]
+            #Splitting it so we can plot the log dist of the luminosities
+            counts,bins = np.histogram(plotting_values,bins = bins)
+            axs[i][j].hist(plotting_values,bins = bins,color = color,edgecolor='black',linewidth=1.2)
+            axs[i][j].set_title(f'Cluster {count+1}, {len(plotting_values)} curves')
+            axs[i][j].set_ylabel('Number of Curves')
+            axs[i][j].set_xlabel(property_to_label_dict[the_property])
+            count += 1
+    if save_figs:
+        create_dir_save_plot(figs_save_path,the_property+'_Distribution_Plot')
+
+def SFplus(magnitudes):
+    '''
+    Calculates the S+ function of given light curves. S+ is the variance of magnitudes where the brightness increases
+    
+    Parameters
+    ----------
+    lcs:  List of pd.Dataframes
+    The light curves of interest
+
+    Returns
+    --------
+    sfplus:
+    The list of S+
+    '''
+    #Calculate the S+ Function
+    combs=combinations(magnitudes,2)
+    sf_vals=[]
+    for x,y in combs:
+        if x-y>0:
+            sf_vals.append((x-y)**2)
+    #sfplus=np.sqrt(np.mean(sf_vals))
+    sfplus = np.mean(sf_vals)
+    return sfplus
+
+def SFminus(magnitudes):
+  '''
+    Calculates the S- function of given light curves. S- is the variance of magnitudes where the brightness decreases
+    
+    Parameters
+    ----------
+    lcs:  List of pd.Dataframes
+    The light curves of interest
+
+    Returns
+    --------
+    sfminus:
+    The list of S-
+    '''
+    combs=combinations(magnitudes,2)
+    sf_vals=[]
+    for x,y in combs:
+        if x-y<0:
+            sf_vals.append((x-y)**2)
+    #sfmin=np.sqrt(np.mean(sf_vals))
+    sfmin = np.mean(sf_vals)
+    return sfmin
+
+def SF(magnitudes):
+    '''
+    Calculates the S function of given light curves. S is the variance of all magnitudes
+    
+    Parameters
+    ----------
+    lcs:  List of pd.Dataframes
+    The light curves of interest
+
+    Returns
+    --------
+    sf:
+    The list of SFs
+    '''
+    combs=combinations(magnitudes,2)
+    sf_vals=[]
+    for x,y in combs:
+        if x-y>0:
+            sf_vals.append((x-y)**2)
+    #sf=np.sqrt(np.mean(sf_vals))
+    sf = np.mean(sf_vals)
+    return sf
+
+def Structure_Function(cluster_map,selected_cluster,lcs,bins,save_figs = True,figs_save_path = './'):
+    '''
+    Create the structure function for a given cluster
+    
+    Parameters
+    ----------
+    cluster_map: pd.Dataframe
+    A map of each of the ids to the clusters
+    
+    selected_cluster: int
+    The cluster of interest
+    
+    lcs: list of list of pd.Dataframes
+    The light curves (provide the input from just one filter)
+    
+    bins:int or list
+    The bins to use for the structure function
+    
+    save_figs: bool
+    Whether to save the figure or not
+    
+    figs_save_path: str
+    Where to save the figure. Note that it is saved under a directory called Plots in that directory.
+    
+    Returns
+    --------
+    S+ and S- Plot: 
+    A plot of the S+ and S- functions for the cluster
+    
+    Difference Plot:
+    The evolution of the normalized S+ - S- throughout the observation time of the cluster
+    
+    S Plot:
+    The evolution of the (regular) structure function through the observation time of the cluster
+    '''
+    all_quasar_ids = cluster_map.ID
+    if selected_cluster == 'all':
+        selected_quasar_ids = all_quasar_ids.to_list()
+    else:
+        selected_quasar_ids = cluster_map.ID[cluster_map.Cluster == selected_cluster].to_list()
+    quasar_light_curves = []
+    for i in range(len(all_quasar_ids)):
+        if all_quasar_ids[i] in selected_quasar_ids:
+            quasar_light_curves.append(lcs[i])
+  #Putting all the magnitudes and times together
+    mag_composite=[]
+    time_composite=[]
+    for light_curve in quasar_light_curves:
+        mag_composite=mag_composite+light_curve["mag"].to_list()
+        time_composite=time_composite+ light_curve["mjd"].to_list()
+    time_composite_zeroed = time_composite - np.min(time_composite)
+    #Calculating the S+, S- and S for all bins
+    betaplus, timeplus,xx=stats.binned_statistic(time_composite_zeroed, mag_composite, statistic=SFplus, bins=bins, range=None)
+    betamin, timemin,xx=stats.binned_statistic(time_composite_zeroed, mag_composite, statistic=SFminus, bins=bins, range=None)
+    beta, time,xx=stats.binned_statistic(time_composite_zeroed, mag_composite, statistic=SF, bins=bins, range=None)
+
+    #Calculating the normalizing function
+    bbeta=((betaplus)-(betamin))/(beta+0.01)
+
+    #Plotting S+ and S-
+    plt.figure()
+    plt.scatter(timeplus[:-1],betaplus,marker = 'v',label = r'$S_+$ observed QSO',c = 'orange')
+    plt.plot(timeplus[:-1],betaplus,c = 'orange',linestyle = '--')
+    plt.scatter(timemin[:-1],betamin,marker = '^',label = r'$S_-$ observed QSO',c = 'b')
+    plt.plot(timemin[:-1],betamin,c = 'b',linestyle = '--')
+    plt.xlabel(r'$\tau[day]$')
+    plt.ylabel(r'$S_+\cup S_-$')
+    if save_figs:
+        create_dir_save_plot(figs_save_path,f'Cluster_{selected_cluster}_S+&S-_Plot')
+    plt.legend()
+    #Plotting the normalized difference
+    plt.figure()
+    plt.scatter(time[:-1],bbeta,label = r'$\beta$ Observed QSO',c = 'black',s = 4)
+    plt.plot(time[:-1],bbeta,linestyle = '--')
+    plt.xlabel(r'$\tau[day]$')
+    plt.ylabel(r'$\beta = \frac{S_+ - S_-}{S}$')
+    if save_figs:
+        create_dir_save_plot(figs_save_path,f'Cluster_{selected_cluster}_S+S-_Difference_Plot')
+    #plt.legend()
+    #Plotting the structure function evolution
+    plt.figure()
+    plt.scatter(time[:-1],beta,label = r'SF Observed QSO',c = 'black',s = 4)
+    plt.plot(time[:-1],beta,linestyle = '--')
+    plt.xlabel(r'$\tau[day]$')
+    plt.ylabel(r'Structure Function')
+    if save_figs:
+        create_dir_save_plot(figs_save_path,f'Cluster_{selected_cluster}_Structure_Function_Plot')
