@@ -671,27 +671,27 @@ def Get_Gradient_Cluster(som):
             cluster_pos.append(np.array([row,col]))
     return np.array(cluster_centers),np.array(cluster_pos)
 
-def SOM_Nodes_to_Gradient_Centers(som,som_y):
+def Normal_Cluster_to_Grad(cluster_map,gradient_cluster_map):
     '''
-    Retuns the cluster mapping for the Gradient clusters
+    Maps the normal cluster map to the gradient clusters
     
     Parameters
     ----------
-    som: int  
-    The x position of the given input node
+    cluster_map: pd.DataFrame  
+    The map of the ids to the original SOM node clusters
     
-    som_y: int  
-    The y dimensions of the SOM
+    gradient_cluster_map: pd.DataFrame  
+    The map of the ids to the gradient SOM node clusters
     
     Returns
     --------
-    minx, miny:
-    The minumum x node and minimum y node
+    joint_map:
+    Mapping of each SOM node cluster to the gradient cluster
     '''
-    gradient_centers = [cluster_center[0]*som_y+cluster_center[1]+1 for cluster_center in Get_Gradient_Cluster(som)[0]]
-    actual_clusters = [cluster_center[0]*som_y+cluster_center[1]+1 for cluster_center in Get_Gradient_Cluster(som)[1]]
-    clustering_map = pd.DataFrame({'Original Clusters':actual_clusters,'New Clusters':gradient_centers})
-    return clustering_map
+    joint_map = cluster_map.join(gradient_cluster_map,rsuffix='_grad')[['Cluster','Cluster_grad']].groupby('Cluster').mean()
+    joint_map.columns = ['Gradient Clusters']
+    joint_map.index.name = 'Normal Clusters'
+    return joint_map
 
 def Gradient_Cluster_Map(som,scaled_curves,ids,dimension = '1D',fill = 'mean',interpolation_kind = 'cubic',clusters = None,som_x = None,som_y = None):
     '''
