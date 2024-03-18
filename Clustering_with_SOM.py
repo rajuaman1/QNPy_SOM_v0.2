@@ -494,7 +494,7 @@ def Plot_SOM_Scaled_Average(som_model,scaled_curves,dba = True,figsize = (10,10)
                 if show_fig is False:
                     plt.close()
 
-def SOM_Nodes_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False,figs_save_path = './'):
+def SOM_Distance_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False,figs_save_path = './'):
     '''
     Plots a heatmap of the SOM Nodes. The brighter, the further away they are from their neighbors
     
@@ -521,10 +521,15 @@ def SOM_Nodes_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False,fi
     The heatmap plot
     '''
     plt.figure(figsize = figsize)
-    plt.pcolormesh(som_model.distance_map().T, cmap=cmap,edgecolors='k')
+    distance_map = som_model.distance_map()
+    plt.pcolormesh(distance_map, cmap=cmap,edgecolors='k')
+    for i in range(len(distance_map)):
+        for j in range(len(distance_map)):
+            plt.text(j+0.1,i+0.5,'Clus. {}'.format(i*len(distance_map[i])+j+1))
     cbar = plt.colorbar()
     plt.xlabel('x')
     plt.ylabel('y')
+    plt.gca().invert_yaxis()
     if save_figs:
         if 'Plots' not in os.listdir():
             os.makedirs(figs_save_path+'Plots')
