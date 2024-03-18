@@ -521,7 +521,7 @@ def SOM_Nodes_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False,fi
     The heatmap plot
     '''
     plt.figure(figsize = figsize)
-    plt.pcolor(som_model.distance_map().T, cmap=cmap,edgecolors='k')
+    plt.pcolormesh(som_model.distance_map().T, cmap=cmap,edgecolors='k')
     cbar = plt.colorbar()
     plt.xlabel('x')
     plt.ylabel('y')
