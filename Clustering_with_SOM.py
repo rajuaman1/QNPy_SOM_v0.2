@@ -1634,26 +1634,29 @@ def Cluster_Properties(cluster_map,selected_cluster,lcs,redshifts_map = None,plo
     if redshifts_map is None and the_property != 'Fvar':
         print('Need Redshifts to plot selected property')
         return
-    all_quasar_ids = cluster_map.ID
+    all_quasar_ids = cluster_map.ID.astype('int')
     if selected_cluster == 'all':
-        selected_quasar_ids = all_quasar_ids.to_list()
+        selected_quasar_ids = all_quasar_ids
     else:
         selected_quasar_ids = cluster_map.ID[cluster_map.Cluster == selected_cluster].to_list()
     quasar_light_curves = []
+    new_selected_quasar_ids = [int(ID) for ID in selected_quasar_ids]
     for i in range(len(lcs)):
-        if all_quasar_ids[i] in selected_quasar_ids:
+        if all_quasar_ids[i] in new_selected_quasar_ids:
               quasar_light_curves.append(lcs[i])
     return_list = [[np.nan]*len(selected_quasar_ids)]*4
     if the_property == 'all':
         the_property = 'zFvarLumMass'
+    new_selected_quasar_ids = [int(ID) for ID in selected_quasar_ids]
     if 'z' in the_property:
-        redshifts = get_redshifts(redshifts_map[redshifts_map.ID.isin(selected_quasar_ids)])
+        redshifts_map_selected = redshifts_map[redshifts_map.ID.isin(new_selected_quasar_ids)]
+        redshifts = get_redshifts(redshifts_map_selected)
         return_list[0] = redshifts
         if 'Lum' not in the_property or 'Mass' not in the_property:
-            log_luminosities = [None]*len(fvars)
-            log_masses = [None]*len(fvars)
+            log_luminosities = [None]*len(redshifts)
+            log_masses = [None]*len(redshifts)
         if 'Fvar' not in the_property:
-            fvars = [None]*len(log_masses)
+            fvars = [None]*len(redshifts)
     if 'Fvar' in the_property:
         fvars = get_fvars(quasar_light_curves)
         return_list[1] = fvars
@@ -1663,7 +1666,8 @@ def Cluster_Properties(cluster_map,selected_cluster,lcs,redshifts_map = None,plo
             log_luminosities = [None]*len(fvars)
             log_masses = [None]*len(fvars)
     if 'Lum' in the_property or 'Mass' in the_property:
-        log_luminosities,log_masses = get_luminosities_and_masses(quasar_light_curves,redshifts_map[redshifts_map.ID.isin(selected_quasar_ids)])
+        redshifts_map_selected = redshifts_map[redshifts_map.ID.isin(new_selected_quasar_ids)]
+        log_luminosities,log_masses = get_luminosities_and_masses(quasar_light_curves,redshifts_map_selected)
         return_list[2] = log_luminosities
         return_list[3] = log_masses
         if 'z' not in the_property:
