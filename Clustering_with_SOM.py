@@ -533,7 +533,49 @@ def SOM_Distance_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False
     if save_figs:
         if 'Plots' not in os.listdir():
             os.makedirs(figs_save_path+'Plots')
-        plt.savefig(figs_save_path+'Plots/SOM_Nodes_Map.png')
+        plt.savefig(figs_save_path+'Plots/SOM_Distance_Map.png')
+    plt.show()
+    
+def SOM_Activation_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False,figs_save_path = './'):
+    '''
+    Plots a heatmap of the SOM Nodes. The brighter, the more light curves activate the SOM
+    
+    Parameters
+    ----------
+    som_model:  
+    The trained SOM
+    
+    cmap: str
+    The matplotlib based color scale to use for the plots
+    
+    figsize: tuple
+    The size of the figure
+    
+    save_figs: bool
+    Whether to save the figure or not
+    
+    fig_save_path: str
+    Where to save the figure. Note that it creates a directory called Plots in the location given.
+    
+    Returns
+    --------
+    Plot:
+    The heatmap plot
+    '''
+    plt.figure(figsize = figsize)
+    activation_response = som_model.activation_response()
+    plt.pcolormesh(activation_response, cmap=cmap,edgecolors='k')
+    for i in range(len(activation_response)):
+        for j in range(len(activation_response)):
+            plt.text(j+0.1,i+0.5,'Clus. {}'.format(i*len(activation_response[i])+j+1))
+    cbar = plt.colorbar()
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.gca().invert_yaxis()
+    if save_figs:
+        if 'Plots' not in os.listdir():
+            os.makedirs(figs_save_path+'Plots')
+        plt.savefig(figs_save_path+'Plots/SOM_Activation_Map.png')
     plt.show()
     
 def Assign_Cluster_Labels(som_model,scaled_curves,ids):
@@ -564,7 +606,7 @@ def Assign_Cluster_Labels(som_model,scaled_curves,ids):
     clusters_df=pd.DataFrame(cluster_map,columns=["ID","Cluster"])
     return clusters_df
 
-def SOM_Clusters_Histogram(cluster_map,color,save_figs = True,figs_save_path = './',figsize = (5,5)):
+def SOM_Clusters_Histogram(cluster_map,color = 'tab:blue',save_figs = True,figs_save_path = './',figsize = (5,5)):
     '''
     Plots a heatmap of the SOM Nodes. The brighter, the further away they are from their neighbors
     
@@ -572,6 +614,9 @@ def SOM_Clusters_Histogram(cluster_map,color,save_figs = True,figs_save_path = '
     ----------
     cluster_map:  
     The dataframe with each id and the cluster that it belongs to
+    
+    color: str
+    The color to plot the histogram
     
     save_figs: bool
     Whether to save the figure or not
