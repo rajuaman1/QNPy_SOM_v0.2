@@ -25,11 +25,11 @@ Check out the `Example Notebooks` folder [here](https://github.com/rajuaman1/QNP
 
 Folder Structure
 ================
-The SOM module automatically creates folders for saving plots and saves your trained SOM. The only requirement for the file structure is to save light curves before the module and choose directories to save plots and models during the module's runtime. The light curves should be saved under a directory (can be named anything) with the filters saved as subfolders. Then, each light curve should be saved as a CSV file with the id as the file name. For example, if you have a light curve in the g filter with ID 10422 and you want to save it in a folder known as `Light_Curves`, it should be saved under the directory `Light_Curves/g/10422.csv`.
+The SOM module automatically creates folders for saving plots and saves your trained SOM. The only requirement for the file structure is to save light curves before the module and choose directories to save plots and models during the module's runtime. The files can be saved under any folder as desired and the file name can be given as an input into the loading function.
+
+In the case of multi-band light curves only, the light curves should be saved under a directory (can be named anything) with the filters saved as subfolders. Then, each light curve should be saved as a CSV file with the id as the file name. For example, if you have a light curve in the g filter with ID 10422 and you want to save it in a folder known as `Light_Curves`, it should be saved under the directory `Light_Curves/g/10422.csv`. This is the standard recommendation for multi-band data. Then, once the clusters are created, it is easy to either point QNPy to one of the filters of a cluster or to manually flatten the file and provide all the light curves to QNPy. However, QNPy does not yet support explicit multi-band clustering.
 
 As with other QNPy light curves, your data must contain: `mjd` - MJD or time, `mag` - magnitude, and `magerr` - magnitude error.
-
-It should be noted that the standard QNPy file structure is slightly different. It does not have the differentiation based on bands. However, this is an easy fix as you can point QNPy to a single band directory or you can copy the band that you wish to model into a separate folder and rename it (For example, you move the `Light_Curves/g` directory into a new folder called `Light_Curves_2`). The output folders of this module are also created in the same way  (For example, `Cluster_31/g/10422.csv`) and can used in QNPy in the same format.
 
 Module and Functions
 ===========================
@@ -45,17 +45,23 @@ Described below are the functions used in the module:
 
 **Main Functions**:
 ```
-Load_Light_Curves(folder,filters):
+Load_Light_Curves(folder,one_filter = True,filters = 'a',id_list = None):
 '''
-Loads light curves from a specified folder
+Loads light curves from a specified folder. Can be used to load either multiple filters or just one filter
 
 Parameters
 ----------
 folder: str 
 The folder where the light curves are stored
 
+one_filter: bool
+If set to true, the light curves are only stored in one folder without filters
+
 filters: list or str(if each filter is a single letter)
-The filters that are to be loaded. Each filter should have a subfolder named after it
+The filters that are to be loaded. Each filter should have a subfolder named after it if there are more than one filters
+
+id_list: list of str or None
+The subset of IDs to load. If None, retrieves all files in the given folder. NOTE: make sure the ids are strings
 
 Returns
 --------
@@ -67,20 +73,26 @@ The ids of the light curves (Ensure that they are the same in all filters)
 '''
 ```
 ```  
-Pad_Light_Curves(light_curves,filters,minimum_length = 100):
+Pad_Light_Curves(light_curves,minimum_length = 100,save_padded_lcs = False,padded_lcs_save_path = './',ids = None):
 '''
 Pads the light curves with the mean value at the end of the curve
 
 Parameters
 ----------
-light_curves: list of lists of dataframes 
-The light curves stored in a list. These lists are then stored in a bigger list
-
-filters: list or str(if each filter is a single letter)
-The filters to be used
+light_curves: lists of dataframes 
+The light curves stored in a list
 
 minimum_length: int
 The minimum length to pad to
+
+save_padded_lcs: bool
+If True, will save the light curves into a folder known as Padded_Lc in the specified directory
+
+padded_lcs_save_path: str
+The directory to save the light curves in
+
+ids: list of str
+A list of the ids. Must provided in order to save the light curves
 
 Returns
 --------
@@ -277,7 +289,7 @@ The metric that is calculated
 '''
 ```
 ```
-save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save_path = './',source_path = './Light_Curves'):
+save_chosen_cluster(chosen_cluster,cluster_map,one_filter = True,filters = 'a',overwrite = True,save_path = './',source_path = './Light_Curves'):
 '''
 Saves the chosen cluster into a folder
 
@@ -286,11 +298,14 @@ Parameters
 chosen_cluster: int
 The cluster to save
 
-filters: str
-The filters to save
-
 cluster_map: pd.Dataframe
 A map of each of the ids to the clusters
+
+one_filter: bool
+Whether to save just one filter or all the filters
+
+filters: str
+The filters to save
 
 overwrite: bool
 Whether to overwrite the current folder
@@ -299,7 +314,7 @@ save_path: str
 The path to save to. This creates a folder for the cluster in that directory
 
 source_path: str
-The path that the light curves are saved in
+The path that the light curves are saved in. If multifilter, provide the entire larger folder.
 '''
 ```
 ***Multi-Band Clustering Functions***:
