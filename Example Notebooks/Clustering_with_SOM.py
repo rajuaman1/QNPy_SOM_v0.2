@@ -555,7 +555,7 @@ def SOM_Distance_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = False
     The heatmap plot
     '''
     plt.figure(figsize = figsize)
-    distance_map = som_model.distance_map()
+    distance_map = som_model.distance_map().T
     plt.pcolormesh(distance_map, cmap=cmap,edgecolors='k')
     for i in range(len(distance_map)):
         for j in range(len(distance_map)):
@@ -597,7 +597,7 @@ def SOM_Activation_Map(som_model,figsize = (5,5),cmap = 'YlOrRd',save_figs = Fal
     The heatmap plot
     '''
     plt.figure(figsize = figsize)
-    activation_response = som_model.activation_response()
+    activation_response = som_model.activation_response().T
     plt.pcolormesh(activation_response, cmap=cmap,edgecolors='k')
     for i in range(len(activation_response)):
         for j in range(len(activation_response)):
@@ -820,6 +820,13 @@ def Gradient_Cluster_Map(som,scaled_curves,ids,dimension = '1D',fill = 'mean',in
         cluster_centers,cluster_pos = Get_Gradient_Cluster(som)
     else:
         cluster_centers,cluster_pos = Get_Gradient_Cluster_2D(som,fill,interpolation_kind)
+    default_som_grid_length = math.ceil(math.sqrt(math.sqrt(len(scaled_curves))))
+    #Now, initialize the SOM
+    if som_x is None and som_y is None:
+        som_x = som_y = default_som_grid_length
+    elif som_x is None or som_y is None:
+        print('Please Provide both som_x and som_y or neither, going with the default values of the sqrt')
+    som_x = som_y = default_som_grid_length
     cluster_numbers = np.arange(len(np.unique(cluster_centers,axis = 0)))
     unique_cluster_centers = np.unique(cluster_centers,axis = 0)
     cluster_numbers_map = []
@@ -1202,7 +1209,6 @@ def multi_band_clustering(light_curves,ids,filter_names = 'ugriz',som_x = None,s
     processed_light_curves, processed_mask = multi_band_processing(light_curves,ids,filter_names)
     print('Processed')
     default_som_grid_length = math.ceil(math.sqrt(math.sqrt(len(processed_light_curves))))
-    print(default_som_grid_length)
     #Now, initialize the SOM
     if som_x is None and som_y is None:
         som_x = som_y = default_som_grid_length
