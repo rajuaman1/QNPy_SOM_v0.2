@@ -1,4 +1,4 @@
-# QNPy_SOM_v0.2
+# QNPy SOM v0.2
 The Self Organizing Map module here is intended to serve as an addition to the QNPy package in order to cluster light curve data before modeling. Thus, it is recommended to see the [QNPy readme](https://github.com/kittytheastronaut/QNPy-002-Progress/blob/main/README.md) for a more detailed idea of the entire QNPy pipeline.
 
 Introduction
