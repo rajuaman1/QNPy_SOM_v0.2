@@ -300,7 +300,8 @@ source_path: str
 The path that the light curves are saved in
 '''
 ```
-***Multi-Band Clustering Functions***
+***Multi-Band Clustering Functions***:
+
 These functions are only used for multi-band clustering
 ```
 multi_band_clustering(light_curves,ids,filter_names = 'ugriz',som_x = None,som_y = None,sigma = 1.0,learning_rate = 0.5,\
@@ -379,7 +380,8 @@ quantization_error:
 The quantization error of each of the data points
 '''
 ```
-***Visualization Functions***
+***Visualization Functions***:
+
 These functions are used for visualizations
 
 ```
