@@ -187,7 +187,7 @@ def Pad_Light_Curves(light_curves,minimum_length = 100,save_padded_lcs = False,p
                 os.makedirs(padded_lcs_save_path+'Padded_lc')
             for i in tqdm(range(len(ids)),desc = 'Saving Padded lcs'):
                 light_curves_copy[i].to_csv('Padded_lc/{}.csv'.format(ids[i]),index = False)
-        return light_curves_copy
+    return light_curves_copy
 
 def scale_curves(light_curves,what_scaler = 'default',scale_times = True):
     '''
