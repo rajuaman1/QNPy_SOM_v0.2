@@ -42,7 +42,7 @@ We also provide different plots for visualization of the data. These will be des
 Described below are the functions used in the module:
 
 **Main Functions**
-
+```
     Load_Light_Curves(folder,filters):
     '''
     Loads light curves from a specified folder
@@ -63,7 +63,8 @@ Described below are the functions used in the module:
     ids: list
     The ids of the light curves (Ensure that they are the same in all filters)
     '''
-  
+```
+```  
     Pad_Light_Curves(light_curves,filters,minimum_length = 100):
       '''
       Pads the light curves with the mean value at the end of the curve
@@ -84,5 +85,5 @@ Described below are the functions used in the module:
       light_curves: list of lists
       The new padded light curves
       '''
-
+```
   
