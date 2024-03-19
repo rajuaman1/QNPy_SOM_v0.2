@@ -122,7 +122,7 @@ def Load_Light_Curves(folder,one_filter = True,filters = 'a',id_list = None):
         for file in tqdm(filenames,desc ='Loading {} curves'.format(Filter)):
             truth_flag = 0
             if one_filter:
-                ID = file[len(folder)+1:-4]
+                ID = file[len(folder):-4]
             else:
                 ID = file[len(folder)+len(str(Filter))+2:-4]
             if id_list is None:
@@ -990,7 +990,7 @@ def Cluster_Metrics(scaled_curves,cluster_map,metric = 'Silhoutte'):
         print('Please use Silhoutte, DBI or CH')
     return score
 
-def save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save_path = './',source_path = './Light_Curves'):
+def save_chosen_cluster(chosen_cluster,cluster_map,one_filter = True,filters = 'a',overwrite = True,save_path = './',source_path = './Light_Curves'):
     '''
     Saves the chosen cluster into a folder
     
@@ -999,11 +999,14 @@ def save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save
     chosen_cluster: int
     The cluster to save
     
-    filters: str
-    The filters to save
-    
     cluster_map: pd.Dataframe
     A map of each of the ids to the clusters
+    
+    one_filter: bool
+    Whether to save just one filter or all the filters
+    
+    filters: str
+    The filters to save
     
     overwrite: bool
     Whether to overwrite the current folder
@@ -1012,7 +1015,7 @@ def save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save
     The path to save to. This creates a folder for the cluster in that directory
     
     source_path: str
-    The path that the light curves are saved in
+    The path that the light curves are saved in. If multifilter, provide the entire larger folder.
     '''
     #Save the light curves in the chosen cluster in a way they can be processed by QNPy
     #If folder isn't made, will create this folder to save the curves
@@ -1021,10 +1024,14 @@ def save_chosen_cluster(chosen_cluster,filters,cluster_map,overwrite = True,save
             shutil.rmtree(save_path+f'Cluster_{chosen_cluster}')
     os.makedirs(save_path+f'Cluster_{chosen_cluster}',exist_ok = True)
     chosen_ids = cluster_map['ID'][cluster_map['Cluster'] == chosen_cluster].to_numpy()
-    for Filter in tqdm(filters,desc = 'Saving Filters'):
-        os.makedirs(save_path+f'Cluster_{chosen_cluster}/'+Filter,exist_ok = True)
+    if one_filter:
         for ID in chosen_ids:
-            shutil.copyfile(source_path+'/'+Filter+f'/{ID}.csv', save_path+f'Cluster_{chosen_cluster}/{Filter}/{ID}.csv')
+            shutil.copyfile(source_path+f'/{ID}.csv', save_path+f'Cluster_{chosen_cluster}/{ID}.csv')
+    else:
+        for Filter in tqdm(filters,desc = 'Saving Filter for Cluster'):
+            os.makedirs(save_path+f'Cluster_{chosen_cluster}/'+Filter,exist_ok = True)
+            for ID in chosen_ids:
+                shutil.copyfile(source_path+'/'+Filter+f'/{ID}.csv', save_path+f'Cluster_{chosen_cluster}/{Filter}/{ID}.csv')
     print('Cluster Saved')
     
     
