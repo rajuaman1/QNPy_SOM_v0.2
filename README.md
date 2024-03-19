@@ -29,6 +29,8 @@ The SOM module automatically creates folders for saving plots and saves your tra
 
 As with other QNPy light curves, your data must contain: `mjd` - MJD or time, `mag` - magnitude, and `magerr` - magnitude error.
 
+It should be noted that the standard QNPy file structure is slightly different. It does not have the differentiation based on bands. However, this is an easy fix as you can point QNPy to a single band directory or you can copy the band that you wish to model into a separate folder and rename it (For example, you move the `Light_Curves/g` directory into a new folder called `Light_Curves_2`). The output folders of this module are also created in the same way  (For example, `Cluster_31/g/10422.csv`) and can used in QNPy in the same format.
+
 Module and Functions
 ===========================
 In the clustering module, we first load the light curves from the directory. This also creates the ids from the file names. Thus, it is recommended to have the same light curves saved across all the different bands. Then, we pad the light curves to make them all the same length. In QNPy, we have seen that we require at least 100 data points for accurate modeling. Thus, we recommend that the light curves be padded to at least 100 points (even if the longest curve is under 100 points, which can be controlled through a keyword in the padding function). Finally, we scale the light curves. We have provided many different scalers including minmax, standard and robust scalers. Our `default` scaler is an adapted version of a minmax scaler that scales all the data to the range [-2,2].
