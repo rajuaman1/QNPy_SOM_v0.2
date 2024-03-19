@@ -453,9 +453,9 @@ def Plot_SOM_Scaled_Average(som_model,scaled_curves,dba = True,figsize = (10,10)
     Plot:
     The plots of the clusters
     '''
-    som_x,som_y = som_model.distance_map().shape
+    som_x,som_y = som_model.get_weights().shape[:2]
     win_map = som_model.win_map(scaled_curves)
-    total = len(win_map)
+    total = som_x*som_y
     cols = int(np.sqrt(len(win_map)))
     rows = total//cols
     if total % cols != 0:
@@ -467,8 +467,8 @@ def Plot_SOM_Scaled_Average(som_model,scaled_curves,dba = True,figsize = (10,10)
         for x in tqdm(range(som_x),desc = 'Creating Plots'):
             for y in range(som_y):
                 cluster = (x,y)
+                no_obj_in_cluster = 0
                 if cluster in win_map.keys():
-                    no_obj_in_cluster = 0
                     for series in win_map[cluster]:
                         if plot_background:
                             if no_obj_in_cluster == 0:
@@ -476,14 +476,15 @@ def Plot_SOM_Scaled_Average(som_model,scaled_curves,dba = True,figsize = (10,10)
                             else:
                                 axs.flat[count].plot(series,c="gray",alpha=0.5)
                         no_obj_in_cluster += 1
+                    if plot_avg:
+                        if no_obj_in_cluster > 0:
+                            if dba is True:
+                                axs.flat[count].plot(dtw_barycenter_averaging(np.vstack(win_map[cluster])),c="blue",label = 'Average Curve')
+                            else:
+                                axs.flat[count].plot(np.mean(np.vstack(win_map[cluster]),axis=0),c="blue",label = 'Average Curve')
                 if plot_weights:
                     weights = som_model.get_weights()[x][y]
                     axs.flat[count].plot(range(len(weights)),weights,c = 'red',label = 'SOM Representation')
-                if plot_avg:
-                    if dba is True:
-                        axs.flat[count].plot(dtw_barycenter_averaging(np.vstack(win_map[cluster])),c="blue",label = 'Average Curve')
-                    else:
-                        axs.flat[count].plot(np.mean(np.vstack(win_map[cluster]),axis=0),c="blue",label = 'Average Curve')
                 axs.flat[count].set_title(f"Cluster {x*som_y+y+1}: {no_obj_in_cluster} curves")
                 axs.flat[count].legend()
                 count += 1
@@ -497,23 +498,23 @@ def Plot_SOM_Scaled_Average(som_model,scaled_curves,dba = True,figsize = (10,10)
             for y in range(som_y):
                 plt.figure(figsize = figsize)
                 cluster = (x,y)
+                no_obj_in_cluster = 0
                 if cluster in win_map.keys():
-                    no_obj_in_cluster = 0
                     for series in win_map[cluster]:
                         if plot_background:
                             if no_obj_in_cluster == 0:
                                 plt.plot(series,c="gray",alpha=0.5,label = 'Light Curves')
                             else:
                                 plt.plot(series,c="gray",alpha=0.5)
+                        if plot_avg:
+                            if dba is True:
+                                plt.plot(dtw_barycenter_averaging(np.vstack(win_map[cluster])),c="blue",label = 'Average Curve')
+                            else:
+                                plt.plot(np.mean(np.vstack(win_map[cluster]),axis=0),c="blue",label = 'Average Curve')
                         no_obj_in_cluster += 1
                 if plot_weights:
                     weights = som_model.get_weights()[x][y]
                     plt.plot(range(len(weights)),weights,c = 'red',label = 'SOM Representation')
-                if plot_avg:
-                    if dba is True:
-                        plt.plot(dtw_barycenter_averaging(np.vstack(win_map[cluster])),c="blue",label = 'Average Curve')
-                    else:
-                        plt.plot(np.mean(np.vstack(win_map[cluster]),axis=0),c="blue",label = 'Average Curve')
                 plt.title(f"Cluster {x*som_y+y+1}: {no_obj_in_cluster} curves")
                 plt.xlabel('Cadence Counts')
                 plt.ylabel('Scaled Magnitude')
