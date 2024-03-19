@@ -43,47 +43,47 @@ Described below are the functions used in the module:
 
 **Main Functions**
 ```
-    Load_Light_Curves(folder,filters):
-    '''
-    Loads light curves from a specified folder
-    
-    Parameters
-    ----------
-    folder: str 
-    The folder where the light curves are stored
-    
-    filters: list or str(if each filter is a single letter)
-    The filters that are to be loaded. Each filter should have a subfolder named after it
-    
-    Returns
-    --------
-    light_curves: list of lists of dataframes
-    The list of light curves arranged by filter
-    
-    ids: list
-    The ids of the light curves (Ensure that they are the same in all filters)
-    '''
+Load_Light_Curves(folder,filters):
+'''
+Loads light curves from a specified folder
+
+Parameters
+----------
+folder: str 
+The folder where the light curves are stored
+
+filters: list or str(if each filter is a single letter)
+The filters that are to be loaded. Each filter should have a subfolder named after it
+
+Returns
+--------
+light_curves: list of lists of dataframes
+The list of light curves arranged by filter
+
+ids: list
+The ids of the light curves (Ensure that they are the same in all filters)
+'''
 ```
 ```  
-    Pad_Light_Curves(light_curves,filters,minimum_length = 100):
-      '''
-      Pads the light curves with the mean value at the end of the curve
-      
-      Parameters
-      ----------
-      light_curves: list of lists of dataframes 
-      The light curves stored in a list. These lists are then stored in a bigger list
-      
-      filters: list or str(if each filter is a single letter)
-      The filters to be used
-      
-      minimum_length: int
-      The minimum length to pad to
-      
-      Returns
-      --------
-      light_curves: list of lists
-      The new padded light curves
-      '''
+Pad_Light_Curves(light_curves,filters,minimum_length = 100):
+  '''
+  Pads the light curves with the mean value at the end of the curve
+  
+  Parameters
+  ----------
+  light_curves: list of lists of dataframes 
+  The light curves stored in a list. These lists are then stored in a bigger list
+  
+  filters: list or str(if each filter is a single letter)
+  The filters to be used
+  
+  minimum_length: int
+  The minimum length to pad to
+  
+  Returns
+  --------
+  light_curves: list of lists
+  The new padded light curves
+  '''
 ```
   
