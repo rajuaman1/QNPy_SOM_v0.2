@@ -41,7 +41,7 @@ We also provide different plots for visualization of the data. These will be des
 
 Described below are the functions used in the module:
 
-**Main Functions**
+**Main Functions**:
 ```
 Load_Light_Curves(folder,filters):
 '''
@@ -781,3 +781,37 @@ S Plot:
 The evolution of the (regular) structure function through the observation time of the cluster
 '''
 ```
+Future release
+==============
+The multiband clustering is included in this version of the SOM, however more metrics and visualizations, as well as alternatives implementations are required for more accurate multi-band clustering.
+
+Furthermore, Conditional Neural Processes are not able to fully understand the large gaps in the light curves due to the mean pooling of data. In the next versions of QNPy, the CNPs will be augmented with Attentive Neural Processes in order to better understand the complex relation between time steps in the data. 
+
+Frequently Asked Questions
+==========================
+See QNPy Documentation
+
+Licence
+=======
+
+MIT License
+
+Copyright (c) 2024 Aman Raju
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
