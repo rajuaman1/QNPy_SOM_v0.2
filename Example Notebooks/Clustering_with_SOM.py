@@ -82,17 +82,23 @@ def Plot_Lc(Light_Curve,header = 'Light Curve',save_fig = False,filename = 'Figu
     if return_fig:
         return fig
 
-def Load_Light_Curves(folder,filters):
+def Load_Light_Curves(folder,one_filter = True,filters = 'a',id_list = None):
     '''
-    Loads light curves from a specified folder
+    Loads light curves from a specified folder. Can be used to load either multiple filters or just one filter
     
     Parameters
     ----------
     folder: str 
     The folder where the light curves are stored
     
+    one_filter: bool
+    If set to true, the light curves are only stored in one folder without filters
+    
     filters: list or str(if each filter is a single letter)
-    The filters that are to be loaded. Each filter should have a subfolder named after it
+    The filters that are to be loaded. Each filter should have a subfolder named after it if there are more than one filters
+    
+    id_list: list of str or None
+    The subset of IDs to load. If None, retrieves all files in the given folder. NOTE: make sure the ids are strings
     
     Returns
     --------
@@ -103,33 +109,56 @@ def Load_Light_Curves(folder,filters):
     The ids of the light curves (Ensure that they are the same in all filters)
     '''
     light_curves = []
+    if one_filter:
+        filters = ['all']
     for Filter in filters:
         get_id = True
         one_filter_curves = []
         ids = []
-        filenames = glob(f'{folder}/{Filter}\*.csv')
+        if one_filter:
+            filenames = glob(f'{folder}\*.csv')
+        else:
+            filenames = glob(f'{folder}/{Filter}\*.csv')
         for file in tqdm(filenames,desc ='Loading {} curves'.format(Filter)):
-            one_filter_curves.append(pd.read_csv(file))
-            if get_id:
-                ids.append(file[len(folder)+len(str(Filter))+2:-4])
+            truth_flag = 0
+            if one_filter:
+                ID = file[len(folder)+1:-4]
+            else:
+                ID = file[len(folder)+len(str(Filter))+2:-4]
+            if id_list is None:
+                truth_flag = 1
+            elif ID in id_list:
+                truth_flag = 1
+            if truth_flag:
+                one_filter_curves.append(pd.read_csv(file))
+                if get_id:
+                    ids.append(ID)
         get_id = False
         light_curves.append(one_filter_curves)
+    if one_filter:
+        light_curves = light_curves[0]
     return light_curves,ids
 
-def Pad_Light_Curves(light_curves,filters,minimum_length = 100):
+def Pad_Light_Curves(light_curves,minimum_length = 100,save_padded_lcs = False,padded_lcs_save_path = './',ids = None):
     '''
     Pads the light curves with the mean value at the end of the curve
     
     Parameters
     ----------
-    light_curves: list of lists of dataframes 
-    The light curves stored in a list. These lists are then stored in a bigger list
-    
-    filters: list or str(if each filter is a single letter)
-    The filters to be used
+    light_curves: lists of dataframes 
+    The light curves stored in a list
     
     minimum_length: int
     The minimum length to pad to
+    
+    save_padded_lcs: bool
+    If True, will save the light curves into a folder known as Padded_Lc in the specified directory
+    
+    padded_lcs_save_path: str
+    The directory to save the light curves in
+    
+    ids: list of str
+    A list of the ids. Must provided in order to save the light curves
     
     Returns
     --------
@@ -139,22 +168,26 @@ def Pad_Light_Curves(light_curves,filters,minimum_length = 100):
     light_curves_copy = deepcopy(light_curves)
     #Getting the longest light curve
     longest = minimum_length
-    for i,Filter in enumerate(filters):
-        for light_curve in light_curves_copy[Filter]:
-            if len(light_curve)>longest:
-                longest = len(light_curve)
-                longest_series = light_curve
-    #Reindexing the curves less than the longest one
-    for i,Filter in enumerate(filters):
-        for j,light_curve in tqdm(enumerate(light_curves_copy[Filter]),desc = 'Padding Light Curves'):
-            if len(light_curve) != longest:
-                fill_number = longest - len(light_curve)
-                new_rows = pd.DataFrame({'mjd':list(np.linspace(light_curve['mjd'].iloc[-1]+0.2,light_curve['mjd'].iloc[-1]+0.2*(fill_number+1),fill_number)),
-                'mag':[light_curve['mag'].mean()]*fill_number,
-                'magerr':[light_curve['magerr'].mean()]*fill_number})
-                new_rows = pd.DataFrame(new_rows)
-                light_curves_copy[i][j] = pd.concat((light_curve,new_rows))
-    return light_curves_copy[:len(filters)]
+    for light_curve in light_curves_copy:
+        if len(light_curve)>longest:
+            longest = len(light_curve)
+    for i,light_curve in tqdm(enumerate(light_curves_copy),desc = 'Padding Light Curves'):
+        if len(light_curve) != longest:
+            fill_number = longest - len(light_curve)
+            new_rows = pd.DataFrame({'mjd':list(np.linspace(light_curve['mjd'].iloc[-1]+0.2,light_curve['mjd'].iloc[-1]+0.2*(fill_number+1),fill_number)),
+            'mag':[light_curve['mag'].mean()]*fill_number,
+            'magerr':[light_curve['magerr'].mean()]*fill_number})
+            new_rows = pd.DataFrame(new_rows)
+            light_curves_copy[i] = pd.concat((light_curve,new_rows))
+    if save_padded_lcs:
+        if ids is None:
+            print('Nothing Saved, please provide IDs')
+        else:
+            if 'Padded_lc' not in os.listdir(padded_lcs_save_path):
+                os.makedirs(padded_lcs_save_path+'Padded_lc')
+            for i in tqdm(range(len(ids)),desc = 'Saving Padded lcs'):
+                light_curves_copy[i].to_csv('Padded_lc/{}.csv'.format(ids[i]),index = False)
+        return light_curves_copy
 
 def scale_curves(light_curves,what_scaler = 'default',scale_times = True):
     '''
